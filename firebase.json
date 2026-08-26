@@ -12,5 +12,17 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "database": {
+    "rules": "database.rules.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "RecipeApp",
+        "supportEmail": "support@undefined.firebaseapp.com"
+      }
+    }
   }
 }

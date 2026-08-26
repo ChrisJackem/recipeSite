@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'build', // Change 'build' to your desired directory name
-    emptyOutDir: true // Ensures the directory is cleared before building
+    outDir: 'build',
+    emptyOutDir: true
   }
 })
