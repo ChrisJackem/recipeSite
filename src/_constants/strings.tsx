@@ -1,0 +1,1 @@
+export const USER_CREATED_SUCCESS = "User successfully created. Please check your email for a verification link.";

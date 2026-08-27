@@ -1,5 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { FirebaseError } from "firebase/app";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendEmailVerification,
+} from "firebase/auth";
+import { USER_CREATED_SUCCESS } from "../../_constants/strings";
 
 const config = {
   apiKey: import.meta.env.VITE_APP_API_KEY,
@@ -17,10 +24,35 @@ export default class FirebaseService {
     this.app = initializeApp(config);
     this.auth = getAuth();
   }
+
+  private getAuthErrorMessage = (error: unknown): string => {    
+    if (error instanceof FirebaseError) {
+      const messages: Record<string, string> = {
+        "auth/email-already-in-use": "This email address is already in use.",
+        "auth/invalid-email": "Please enter a valid email address.",
+        "auth/weak-password": "The password is too weak.",
+        "auth/missing-password": "Please enter a password.",
+        "auth/network-request-failed": "A network error occurred. Please try again.",
+      };
+      return messages[error.code] ?? error.message;
+    }
+    return error instanceof Error ? error.message : "An unexpected error occurred.";
+  };
   
-  doCreateUserWithEmailAndPassword = (email:string, password:string) =>
-    createUserWithEmailAndPassword(this.auth, email, password)
-      
+  doCreateUserWithEmailAndPassword = async ( name: string, email: string, password: string ): Promise<string> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword( this.auth, email, password );
+
+      await updateProfile(userCredential.user, { displayName: name });
+      await sendEmailVerification(userCredential.user);
+
+      console.log(userCredential)
+
+      return Promise.resolve(USER_CREATED_SUCCESS);
+    } catch (error) {
+      return Promise.reject(this.getAuthErrorMessage(error));
+    }
+  };
 
   /* doSignInWithEmailAndPassword = (email:string, password:string) =>
     this.auth.signInWithEmailAndPassword(email, password);
@@ -37,5 +69,4 @@ export default class FirebaseService {
     } 
   }*/
 }
-
 
