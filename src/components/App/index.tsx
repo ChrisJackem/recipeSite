@@ -17,7 +17,6 @@ function App() {
   return (
     <BrowserRouter>
       <Navigation />
-
       <Routes>
         <Route path={ROUTES.LANDING} element={<LandingPage />} />
         <Route path={ROUTES.SIGN_UP} element={<SignUpPage />} />
@@ -27,7 +26,6 @@ function App() {
         <Route path={ROUTES.ADMIN} element={<LandingPage />} />
         <Route path={ROUTES.PASSWORD_FORGET} element={<LandingPage />} />
       </Routes>
-
     </BrowserRouter>
   )
 }

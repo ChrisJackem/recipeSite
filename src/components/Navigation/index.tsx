@@ -4,7 +4,7 @@ import * as ROUTES from '../../_constants/routes';
 
 const Navigation = () => (
   <div>
-    <ul>
+    <ul className="list-none">
       <li>
         <Link to={ROUTES.SIGN_IN}>Sign In</Link>
       </li>

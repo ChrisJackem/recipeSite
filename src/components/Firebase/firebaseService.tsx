@@ -42,12 +42,9 @@ export default class FirebaseService {
   doCreateUserWithEmailAndPassword = async ( name: string, email: string, password: string ): Promise<string> => {
     try {
       const userCredential = await createUserWithEmailAndPassword( this.auth, email, password );
-
       await updateProfile(userCredential.user, { displayName: name });
       await sendEmailVerification(userCredential.user);
-
-      console.log(userCredential)
-
+      //console.log(userCredential)
       return Promise.resolve(USER_CREATED_SUCCESS);
     } catch (error) {
       return Promise.reject(this.getAuthErrorMessage(error));
