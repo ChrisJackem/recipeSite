@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useFirebaseService } from "../Firebase/firebaseHook";
+import { EMAIL_PATTERN, PASSWORD_PATTERN } from "../../_constants/patterns";
+import { toast } from "react-toastify";
 
 // const
 const MIN_LENGTH_NAME:number = 3;
 const MIN_LENGTH_PASS:number = 8;
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_PATTERN = /^(?=.*[^A-Za-z0-9\s])(?=.*\d)(?=.*[A-Z]).+$/;
+
 
 // types
 type FormState = {
@@ -71,13 +72,31 @@ export const SignUpForm = () => {
 
     const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
+        const toastId = toast.loading('Creating User...', {
+            closeButton: true
+        });
+
         console.log("SUB")
         if ( formValid.formIsValid ){
             try{
+                //await firebasService.doCreateUserWithEmailAndPassword(formState.name, formState.email, formState.password);
                 const msg = await firebasService.doCreateUserWithEmailAndPassword(formState.name, formState.email, formState.password);
-                console.log(msg)
+                
+                toast.update(toastId, {
+                    render: msg,
+                    type: 'success',
+                    isLoading: false,
+                    position: 'bottom-left',
+                });
+                //console.log(msg)
                 setFormValid({ ...formValid, userValid: true})
-            }catch(error){
+            }catch(error: unknown){
+                toast.update(toastId, {
+                    render: error instanceof Error ? error.message : String(error),
+                    type: 'error',
+                    isLoading: false,
+                    position: 'bottom-left',
+                });
                 console.error(error)
             }         
         }        
