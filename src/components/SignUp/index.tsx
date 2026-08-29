@@ -2,23 +2,17 @@ import { useState } from "react";
 import { useFirebaseService } from "../Firebase/firebaseHook";
 import { EMAIL_PATTERN, PASSWORD_PATTERN } from "../../_constants/patterns";
 import { toast } from "react-toastify";
+import { FIX_ERRORS } from "../../_constants/strings";
 
-// const
 const MIN_LENGTH_NAME:number = 3;
 const MIN_LENGTH_PASS:number = 8;
 
-
-// types
 type FormState = {
     name: string;
     email: string;
     password: string;
 };
-type FormValid = Partial<Record<keyof FormState, string[]>> & { 
-    formIsValid: boolean,
-    userValid: boolean,
-    userError: undefined | string
-};
+type FormErrors = Partial<Record<keyof FormState, string[]>>;
 
 const SignUpPage = () => (
   <div>
@@ -29,15 +23,12 @@ const SignUpPage = () => (
 
 export const SignUpForm = () => {
     const firebasService = useFirebaseService();
+    const [formErrors, setFormErrors] = useState<FormErrors>({});
+    const [formSubmitted, setFormSubmitted] = useState<boolean>(false);
     const [formState, setFormState] = useState<FormState>({
         name: '',
         email: '',
         password: ''
-    });
-    const [ formValid, setFormValid ] = useState<FormValid>({ 
-        formIsValid: false, 
-        userValid: false, 
-        userError: undefined
     });
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,80 +36,82 @@ export const SignUpForm = () => {
         setFormState((currentState) => {
             const nextState = { ...currentState, [name]: value };            
             return { ...nextState };
-        });
-        validate();   
+        }); 
     };
 
-    const validate = () => {
-        const name_valid = formState.name.length >= MIN_LENGTH_NAME;
-        const email_valid = EMAIL_PATTERN.test(formState.email);
-        const password_length_valid = formState.password.length >= MIN_LENGTH_PASS;
-        const password_pattern_valid = PASSWORD_PATTERN.test(formState.password);
-        const password_valid = password_length_valid && password_pattern_valid;
-        const form_valid = name_valid && email_valid && password_valid;
+    const validateForm = (state: FormState = formState) => {
+        const nameErrors = state.name.length >= MIN_LENGTH_NAME
+            ? undefined
+            : [`Name must be at least ${MIN_LENGTH_NAME} characters long.`];
 
-        setFormValid({
-            ...formValid,
-            name: name_valid ? [] : [`Name must be at least ${MIN_LENGTH_NAME} characters long.`],
-            email: email_valid ? [] : ["Enter a valid email address."],
-            password: [
+        const emailErrors = EMAIL_PATTERN.test(state.email)
+            ? undefined
+            : ["Enter a valid email address."];
+
+        const password_length_valid = state.password.length >= MIN_LENGTH_PASS;
+        const password_pattern_valid = PASSWORD_PATTERN.test(state.password);
+        const passwordErrors = password_length_valid && password_pattern_valid
+            ? undefined
+            : [
                 ...(password_length_valid ? [] : [`Password must be at least ${MIN_LENGTH_PASS} characters long.`]),
                 ...(password_pattern_valid ? [] : ["Password must include an uppercase letter, a number, and at least one special character."]),
-            ],
-            formIsValid: form_valid
-        });
-        return form_valid
+            ];
+
+        setFormErrors({ name: nameErrors, email: emailErrors, password: passwordErrors });
+        return [nameErrors, emailErrors, passwordErrors].every(v => v == undefined);
     };
+
+    // Error display helper
+    const createErrorList = (errors: string[] | undefined) =>
+        errors?.map( (error, i) => (
+            <div key={i}>{error}</div>
+        ));
 
     const handleSubmit = async (event: React.SubmitEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const toastId = toast.loading('Creating User...', {
-            closeButton: true
-        });
-
-        console.log("SUB")
-        if ( formValid.formIsValid ){
-            try{
-                //await firebasService.doCreateUserWithEmailAndPassword(formState.name, formState.email, formState.password);
-                const msg = await firebasService.doCreateUserWithEmailAndPassword(formState.name, formState.email, formState.password);
-                
-                toast.update(toastId, {
-                    render: msg,
-                    type: 'success',
-                    isLoading: false,
-                    position: 'bottom-left',
-                });
-                //console.log(msg)
-                setFormValid({ ...formValid, userValid: true})
-            }catch(error: unknown){
-                toast.update(toastId, {
-                    render: error instanceof Error ? error.message : String(error),
-                    type: 'error',
-                    isLoading: false,
-                    position: 'bottom-left',
-                });
-                console.error(error)
-            }         
-        }        
+        toast.dismiss();
+        //const allUndefined = Object.values(formErrors).every(value => value === undefined);
+        const toastId = toast.loading( 'Creating User...' );        
+        try{
+            if ( !validateForm() ) throw new Error(FIX_ERRORS);
+            console.log(formErrors)         
+            const msg = await firebasService.doCreateUserWithEmailAndPassword(formState.name, formState.email, formState.password);
+            toast.update(toastId, {
+                render: msg,
+                type: 'success',
+                isLoading: false,
+                position: 'bottom-left',
+            });
+            setFormSubmitted(true);
+        }catch(error: unknown){
+            toast.update(toastId, {
+                render: error instanceof Error ? error.message : String(error),
+                type: 'error',
+                isLoading: false,
+                position: 'bottom-left',
+            });
+        }              
     }
 
     return (
         <form onSubmit={handleSubmit} >
-            <fieldset disabled={formValid.userValid}>
+            <fieldset disabled={formSubmitted}>
 
-                <div className="flex">
+                <div>
                     <label htmlFor="name">Name</label>
                     <input
                         type="text"
                         id="name"
                         name="name"
                         placeholder="Name"
+                        required
                         value={formState.name || ''}
                         onChange={handleChange}
                     />
+                    { createErrorList(formErrors.name) }
                 </div>
 
-                <div className="flex">
+                <div>
                     <label htmlFor="email">Email</label>
                     <input
                         type="text"
@@ -126,24 +119,28 @@ export const SignUpForm = () => {
                         name="email"
                         placeholder="Email"
                         autoComplete="email"
+                        required
                         value={formState.email || ''}
                         onChange={handleChange}
                     />
+                    { createErrorList(formErrors.email) }
                 </div>
 
-                <div className="flex">
+                <div>
                     <label htmlFor="password">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="password"
                         placeholder="Password"
+                        required
                         value={formState.password || ''}
                         onChange={handleChange}
                     />
+                    { createErrorList(formErrors.password) }
                 </div>
                 
-                <button type="submit" disabled={!formValid.formIsValid}>Submit</button>
+                <button type="submit">Submit</button>
             </fieldset>
         </form>
     )
